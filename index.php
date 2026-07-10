@@ -33,7 +33,7 @@ $fileToolbox->listerFichiers();
                     <h2>📤 Importer un fichier de logs</h2>
                     <div class="form-group">
                         <label for="file">Fichier</label>
-                        <input type="file" id="file" accept=".log,.txt,.csv" name="file" required>
+                        <input type="file" id="file" accept=".log,.txt" name="file" required>
                         <div class="filter mt-2">
                             <label for="typeLog">Type de log</label>
                             <select class="form-select" name="typeLog" id="typeLog" required>
@@ -61,7 +61,7 @@ $fileToolbox->listerFichiers();
                     <h2>📤 Importer un fichier CSV</h2>
                     <div class="form-group">
                         <label for="file">Fichier</label>
-                        <input type="file" id="file" accept=".log,.txt,.csv" name="file" required>
+                        <input type="file" id="file" accept=".csv" name="file" required>
                         <div class="filter mt-2">
                             <label for="separateur">Séparateur</label>
                             <input type="text" name="separateur" id="separateur" value="," placeholder="Séparateur...">

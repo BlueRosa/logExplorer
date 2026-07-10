@@ -162,7 +162,6 @@ if (isset($_POST['submit'])) {
     <input type="hidden" name="data" value="<?= htmlspecialchars(json_encode($dataToolbox->data)) ?>">
     <input type="hidden" name="colonneTri" value="<?= htmlspecialchars($dataToolbox->triColonne ?? '') ?>">
     <input type="hidden" name="ordreTri" value="<?= htmlspecialchars($dataToolbox->sensTri ?? 'ASC') ?>">
-
     <input type="hidden" name="regex" value="<?= htmlspecialchars($dataToolbox->filtreActif->regex ?? '') ?>">
     <input type="hidden" name="recherche" value="<?= htmlspecialchars($dataToolbox->filtreActif->recherche ?? '') ?>">
     <input type="hidden" name="dateDebut" value="<?= htmlspecialchars($dataToolbox->filtreActif->dateDebut ?? '') ?>">
