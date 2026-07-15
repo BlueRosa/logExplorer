@@ -47,17 +47,22 @@ class DataToolbox {
         $this->filteredData = $data;
     }
 
+    /**
+     * fonction d'application d'une liste de filtres sur les données stockées dans la classe.
+     * @param array $filtres liste de filtres à appliquer (dans l'ordre)
+     * @return array les données filtrées
+     */
     function filtrer(array $filtres): array
     {
-        if (empty($this->filteredData)) {
+        if (empty($this->data)) {
             return [];
         }
-        $resultat = $this->filteredData;
+        $resultat = $this->data;
         foreach ($filtres as $filtre) {
             $resultat = array_filter($resultat, function ($ligne) use ($filtre) {
                 // La colonne n'existe pas
                 if (!isset($ligne[$filtre->colonne])) {
-                    return false;
+                    die ("colonne de filtrage non remplie");
                 }
                 $valeurColonne = (string)$ligne[$filtre->colonne];
                 $valeurFiltre = (string)$filtre->valeur;
@@ -73,7 +78,7 @@ class DataToolbox {
                     case "<":
                         return $valeurColonne < $valeurFiltre;
                     default:
-                        return false;
+                        die ("mauvaise condition de filtrage");
                 }
             });
             // Réindexation après chaque filtre
