@@ -190,4 +190,71 @@ class FileToolbox
         fclose($handle);
         return 0;
     }
+
+    public function enregistrerFiltre( string $type, string $nom, array $filtres, ?string $idFichier = null): string
+    {
+        $dossierBase = FILTER_LOCATION;
+        // Détermination du dossier de sauvegarde
+        if ($type === "csv") {
+            if ($idFichier === null) {
+                die ("l'id du fichier est obligatoire");
+            }
+            $dossier = $dossierBase . "csv/" . $idFichier . "/";
+        } else {
+            $dossier = $dossierBase ."/". $type . "/";
+        }
+
+        // Création du dossier si nécessaire
+        if (!is_dir($dossier)) {
+            mkdir($dossier, 0777, true);
+        }
+
+        // Génération de l'identifiant
+        $id = "filtre_" . date("Ymd_His") . "_" . uniqid();
+
+        // Conversion des filtres en tableau JSON
+        $listeFiltres = [];
+
+        foreach ($filtres as $filtre) {
+            $listeFiltres[] = [
+                "colonne" => $filtre->colonne,
+                "condition" => $filtre->condition,
+                "valeur" => $filtre->valeur
+            ];
+        }
+        $data = [
+            "id" => $id,
+            "nom" => $nom,
+            "type" => $type,
+            "creation" => date("Y-m-d H:i:s"),
+            "filtres" => $listeFiltres
+        ];
+
+        file_put_contents(
+            $dossier . $id . ".json",
+            json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE
+            )
+        );
+        return $id;
+    }
+
+    public function chargerFiltre(string $chemin): array
+    {
+        if (!file_exists($chemin)) {
+            return [];
+        }
+        $contenu = json_decode(
+            file_get_contents($chemin),
+            true
+        );
+        $filtres = [];
+        foreach ($contenu["filtres"] ?? [] as $filtre) {
+            $filtres[] = new Filtre(
+                $filtre["colonne"],
+                $filtre["condition"],
+                $filtre["valeur"]
+            );
+        }
+        return $filtres;
+    }
 }

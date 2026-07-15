@@ -132,31 +132,6 @@ if (!empty($dataToolbox->data)) {
             </div>
         </form>
     </div>
-    <form action="" class="d-flex gap-2" method="post">
-        <div class="filter">
-            <label for="regex">Expression régulière</label>
-            <input type="text" id="regex" name="regex"
-                   placeholder="Ex : ^ERROR.*" value="<?= htmlspecialchars($dataToolbox->filtreActif->regex ?? "") ?>">
-        </div>
-        <div class="filter">
-            <label for="recherche">Recherche</label>
-            <input type="text" id="recherche" name="recherche"
-                   placeholder="Texte à rechercher" value="<?= htmlspecialchars( $dataToolbox->filtreActif->recherche ?? "" )?>">
-        </div>
-        <div class="filter">
-            <label for="dateDebut">Date de début</label>
-            <input type="date" id="dateDebut" name="dateDebut" value="<?=htmlspecialchars( $dataToolbox->filtreActif->dateDebut ?? "" ) ?>">
-        </div>
-        <div class="filter">
-            <label for="dateFin">Date de fin</label>
-            <input type="date" id="dateFin" name="dateFin" value="<?= htmlspecialchars( $dataToolbox->filtreActif->dateFin ?? "" )?>">
-        </div>
-        <div class="filter">
-            <label for="filtrer"> </label>
-            <input type="submit" name="submit" id="filtrer" class="btn btn-dark pe-3 ps-3" value="Filtrer">
-        </div>
-        <input type="hidden" hidden value="<?=  htmlspecialchars(json_encode($dataToolbox->data)) ?>" name="data">
-    </form>
     <!-- Bouton -->
     <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalFiltres">
         🔎 Filtres
@@ -193,6 +168,7 @@ if (!empty($dataToolbox->data)) {
                             Appliquer
                         </button>
                     </div>
+                    <input type="hidden" name="data" value="<?= htmlspecialchars(json_encode($dataToolbox->data)) ?>">
                 </form>
             </div>
         </div>

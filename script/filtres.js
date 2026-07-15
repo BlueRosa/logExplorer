@@ -1,8 +1,6 @@
 document.addEventListener("DOMContentLoaded", () => {
     if (filtresInitiaux.length > 0) {
         filtresInitiaux.forEach(filtre => ajouterFiltre(filtre));
-    } else {
-        ajouterFiltre();
     }
 });
 
@@ -129,10 +127,10 @@ function adapterTypeChamp(selectColonne) {
                 Égal
             </option>
             <option value="<">
-                Avant / Plus petit
+                Avant
             </option>
             <option value=">">
-                Après / Plus grand
+                Après
             </option>
         `;
     } else {
@@ -147,10 +145,10 @@ function adapterTypeChamp(selectColonne) {
                 Regex
             </option>
             <option value="<">
-                Plus petit
+                Avant / Plus petit
             </option>
             <option value=">">
-                Plus grand
+                Après / Plus grand
             </option>
         `;
     }
