@@ -12,15 +12,29 @@ if (isset($_POST['submit'])) {
     if ($_POST['submit'] == 'importer') {
         if (isset($_FILES['file'])) {
 
-            $dataToolbox->importData($fileToolbox->extractDataFromFile($fileToolbox->getFichier(
-                    $fileToolbox->import($_FILES['file'], $_POST['typeLog']))));
+            $fichier = $fileToolbox->import(
+                    $_FILES['file'],
+                    $_POST['typeLog']
+            );
+
+            $fileToolbox->fichier = $fichier;
+
+            $dataToolbox->importData(
+                    $fileToolbox->extractDataFromFile(
+                            $fileToolbox->getFichier($fichier)
+                    )
+            );
 
         }
     } else if ($_POST['submit'] == 'csv') {
         if (isset($_FILES['file'])) {
+            $fichier = $fileToolbox->importCSV($_FILES['file'], $_POST['separateur']);
+
+
+            $fileToolbox->fichier = $fichier;
 
             $dataToolbox->importData($fileToolbox->extractDataFromFile(
-                    $fileToolbox->getFichier($fileToolbox->importCSV($_FILES['file'], $_POST['separateur']))));
+                    $fileToolbox->getFichier($fichier)));
 
         }
     } else if ($_POST['submit'] == 'selectionner') {
@@ -38,10 +52,11 @@ if (isset($_POST['submit'])) {
                 isset($_POST['filtre'.$compteur."valeur"]) ) {
             $dataToolbox->ajouterFiltre($_POST['filtre'.$compteur."colonne"], $_POST['filtre'.$compteur."condition"],
                     $_POST['filtre'.$compteur."valeur"]);
-            $fileToolbox->sauvegarder($dataToolbox->filteredData, "Save_".session_id());
             $compteur++;
         }
         $dataToolbox->filtrer($dataToolbox->filtreActif);
+        $fileToolbox->sauvegarder($dataToolbox->filteredData, "Save_".session_id());
+        $fileToolbox->fichier = $_POST['file'];
 
     } else if ($_POST['submit'] == 'trier') {
 
@@ -62,17 +77,18 @@ if (isset($_POST['submit'])) {
                 isset($_POST['filtre'.$compteur."valeur"]) ) {
             $dataToolbox->ajouterFiltre($_POST['filtre'.$compteur."colonne"], $_POST['filtre'.$compteur."condition"],
                     $_POST['filtre'.$compteur."valeur"]);
-            $fileToolbox->sauvegarder($dataToolbox->filteredData, "Save_".session_id());
             $compteur++;
         }
         $dataToolbox->filtrer($dataToolbox->filtreActif);
+        $fileToolbox->sauvegarder($dataToolbox->filteredData, "Save_".session_id());
+        $fileToolbox->fichier = $_POST['file'];
 
         $dataToolbox->filteredData = $dataToolbox->trier($colonneTri, $ordreTri);
 
     } else if ($_POST['submit'] == 'ia') {
 
         $dataToolbox->importData(json_decode($_POST['data'], true));
-
+        /* partie pas à jour
         $filtreIA = demanderIaFiltres($_POST['demandeIA'], $dataToolbox->data[0] ?? []);
 
         $compteur = 0;
@@ -80,10 +96,20 @@ if (isset($_POST['submit'])) {
                 isset($_POST['filtre'.$compteur."valeur"]) ) {
             $dataToolbox->ajouterFiltre($_POST['filtre'.$compteur."colonne"], $_POST['filtre'.$compteur."condition"],
                     $_POST['filtre'.$compteur."valeur"]);
-            $fileToolbox->sauvegarder($dataToolbox->filteredData, "Save_".session_id());
             $compteur++;
         }
+        */
+        $fileToolbox->sauvegarder($dataToolbox->filteredData, "Save_".session_id());
+        $fileToolbox->fichier = $_POST['file'];
         $dataToolbox->filtrer($dataToolbox->filtreActif);
+    } else if ($_POST['submit'] == 'saveFiltre') {
+        echo "";
+
+
+    } else if ($_POST['submit'] == 'loadFiltre') {
+
+        echo "";
+
     }
 }
 
@@ -125,6 +151,7 @@ if (!empty($dataToolbox->data)) {
             <div class="d-flex gap-2 m-2">
                 <input type="text" id="demandeIA" name="demandeIA" class="form-control"
                         placeholder="Ex : trouve les erreurs de connexion d'hier">
+                <input type="hidden" name="file" value="<?= $fileToolbox->fichier ?? "" ?>">
                 <input type="hidden" name="data" value="<?= htmlspecialchars(json_encode($dataToolbox->data)) ?>">
                 <button type="submit" name="submit" value="ia" class="btn btn-primary">
                     Analyser
@@ -163,12 +190,19 @@ if (!empty($dataToolbox->data)) {
                         </button>
                         <button type="submit"
                                 name="submit"
-                                value="filtres"
+                                value="Filtrer"
                                 class="btn btn-primary">
                             Appliquer
                         </button>
+                        <button type="submit"
+                                name="submit"
+                                value="saveFiltre"
+                                class="btn btn-info">
+                            Sauvegarder
+                        </button>
                     </div>
                     <input type="hidden" name="data" value="<?= htmlspecialchars(json_encode($dataToolbox->data)) ?>">
+                    <input type="hidden" name="file" value="<?= $fileToolbox->fichier ?? "" ?>">
                 </form>
             </div>
         </div>
@@ -219,11 +253,12 @@ if (!empty($dataToolbox->data)) {
 </div>
 <form id="triForm" method="post">
     <input type="hidden" name="data" value="<?= htmlspecialchars(json_encode($dataToolbox->data)) ?>">
+    <input type="hidden" name="file" value="<?= $fileToolbox->fichier ?? "" ?>">
     <input type="hidden" name="colonneTri" value="<?= htmlspecialchars($dataToolbox->triColonne ?? '') ?>">
     <input type="hidden" name="ordreTri" value="<?= htmlspecialchars($dataToolbox->sensTri ?? 'ASC') ?>">
     <?php
     $count = 0;
-    foreach ($dataToolbox->filtreActif as $filtre) {
+    foreach ($dataToolbox->filtreActif ?? [] as $filtre) {
         echo '<input type="hidden" name="filtre'.$count.'colonne" value="'.$filtre->colonne.'">';
         echo '<input type="hidden" name="filtre'.$count.'condition" value="'.$filtre->condition.'">';
         echo '<input type="hidden" name="filtre'.$count.'valeur" value="'.$filtre->valeur.'">';

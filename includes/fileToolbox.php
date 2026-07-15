@@ -8,11 +8,13 @@ class FileToolbox
 {
     public string $chemin;
     public array $fichiers;
+    public string $fichier;
 
     function __construct(string $chemin = LOG_FILE_LOCATION)
     {
         $this->chemin = $chemin;
         $this->fichiers = $this->listerFichiers($chemin);
+        $this->fichier = "";
     }
 
     /**
@@ -151,6 +153,7 @@ class FileToolbox
     {
         foreach ($this->fichiers as $fichier) {
             if ($fichier["nomActuel"] === $nom) {
+                $this->fichier = $fichier;
                 return $fichier;
             }
         }
@@ -191,7 +194,7 @@ class FileToolbox
         return 0;
     }
 
-    public function enregistrerFiltre( string $type, string $nom, array $filtres, ?string $idFichier = null): string
+    public function enregistrerFiltre(string $type, string $nom, array $filtres, ?string $idFichier = null): string
     {
         $dossierBase = FILTER_LOCATION;
         // Détermination du dossier de sauvegarde
@@ -235,6 +238,9 @@ class FileToolbox
             json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE
             )
         );
+         if ($type === "csv") {
+             $this->ajouterFiltreInfoCsv(LOG_FILE_LOCATION."/".$idFichier.".info", $dossier . $id . ".json");
+         }
         return $id;
     }
 
@@ -256,5 +262,25 @@ class FileToolbox
             );
         }
         return $filtres;
+    }
+
+    public function ajouterFiltreInfoCsv(string $fichierInfo, string $idFiltre): bool {
+        if (!file_exists($fichierInfo)) {
+            return false;
+        }
+        $info = json_decode(file_get_contents($fichierInfo), true);
+        if ($info === null) {
+            return false;
+        }
+        // Création du tableau si absent
+        if (!isset($info["filtres"])) {
+            $info["filtres"] = [];
+        }
+        // Évite les doublons
+        if (!in_array($idFiltre, $info["filtres"])) {
+            $info["filtres"][] = $idFiltre;
+        }
+        return file_put_contents($fichierInfo, json_encode($info, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE))
+            !== false;
     }
 }
