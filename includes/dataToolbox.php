@@ -14,9 +14,9 @@ class DataToolbox {
     public array $filteredData;
 
     /**
-     * @var Filtre filtre actif sur les données
+     * @var array filtres actifs sur les données
      */
-    public Filtre $filtreActif;
+    public array $filtreActif;
 
     /**
      * @var string colonne sur laquelle est basée le tri actif
@@ -34,7 +34,7 @@ class DataToolbox {
     function __construct(array $data = []) {
         $this->data = $data;
         $this->filteredData = $data;
-        $this->filtreActif = new Filtre("","","","");
+        $this->filtreActif = [];
     }
 
     /**
@@ -47,72 +47,37 @@ class DataToolbox {
         $this->filteredData = $data;
     }
 
-
-    /**
-     * Fonction d'application d'un filtre sur les données de la classe.
-     * @param string $regex expression régulière qu'un des champs doit valider pour être affichée
-     * @param string $recherche valeur qu'un champ doit contenir pour être affichée
-     * @param string $dateDebut date de début de la sélection
-     * @param string $dateFin date de fin de la sélection
-     * @return array données filtrées
-     */
-    function filtrer(string $regex, string $recherche, string $dateDebut, string $dateFin) : array
+    function filtrer(array $filtres): array
     {
-        $this->filtreActif->regex = $regex;
-        $this->filtreActif->recherche = $recherche;
-        $this->filtreActif->dateDebut = $dateDebut;
-        $this->filtreActif->dateFin = $dateFin;
-
-        if (empty($this->data)) {
+        if (empty($this->filteredData)) {
             return [];
         }
-
-        $resultat = [];
-
-        // Trouver la colonne date
-        $colonneDate = null;
-        if (!empty($data)) {
-            foreach (array_keys($this->data[0]) as $colonne) {
-                if (stripos($colonne, "date") !== false) {
-                    $colonneDate = $colonne;
-                    break;
+        $resultat = $this->filteredData;
+        foreach ($filtres as $filtre) {
+            $resultat = array_filter($resultat, function ($ligne) use ($filtre) {
+                // La colonne n'existe pas
+                if (!isset($ligne[$filtre->colonne])) {
+                    return false;
                 }
-            }
-        }
-
-        // Parcours des données (hors première ligne)
-        foreach (array_slice($this->data, 1) as $ligne) {
-
-            $valideRegex = ($regex === "");
-            $valideRecherche = ($recherche === "");
-
-            foreach ($ligne as $champ) {
-
-                $champ = (string)$champ;
-
-                // Au moins un champ respecte le regex
-                if ($regex !== "" && preg_match($regex, $champ)) {
-                    $valideRegex = true;
+                $valeurColonne = (string)$ligne[$filtre->colonne];
+                $valeurFiltre = (string)$filtre->valeur;
+                switch ($filtre->condition) {
+                    case "contient":
+                        return stripos($valeurColonne, $valeurFiltre) !== false;
+                    case "=":
+                        return $valeurColonne === $valeurFiltre;
+                    case "regex":
+                        return preg_match($valeurFiltre, $valeurColonne) === 1;
+                    case ">":
+                        return $valeurColonne > $valeurFiltre;
+                    case "<":
+                        return $valeurColonne < $valeurFiltre;
+                    default:
+                        return false;
                 }
-
-                // Au moins un champ contient la recherche
-                if ($recherche !== "" && stripos($champ, $recherche) !== false) {
-                    $valideRecherche = true;
-                }
-            }
-            $valide = $valideRegex && $valideRecherche;
-            if ($valide && $colonneDate !== null) {
-                $date = strtotime($ligne[$colonneDate]);
-                if ($dateDebut !== null && $dateDebut !== "" && $date < strtotime($dateDebut)) {
-                    $valide = false;
-                }
-                if ($dateFin !== null && $dateFin !== "" && $date > strtotime($dateFin . " 23:59:59")) {
-                    $valide = false;
-                }
-            }
-            if ($valide) {
-                $resultat[] = $ligne;
-            }
+            });
+            // Réindexation après chaque filtre
+            $resultat = array_values($resultat);
         }
         $this->filteredData = $resultat;
         return $resultat;
@@ -141,17 +106,20 @@ class DataToolbox {
         });
         return $this->filteredData;
     }
+
+    public function ajouterFiltre(string $colonne, string $condition, string $valeur) : void
+    {
+        $this->filtreActif[] = new Filtre($colonne, $condition, $valeur);
+    }
 }
 
 class Filtre {
-    public string $regex;
-    public string $recherche;
-    public string $dateDebut;
-    public string $dateFin;
-    function __construct($regex, string $recherche, string $dateDebut, string $dateFin) {
-        $this->regex = $regex;
-        $this->recherche = $recherche;
-        $this->dateDebut = $dateDebut;
-        $this->dateFin = $dateFin;
+    public string $colonne;
+    public string $condition;
+    public string $valeur;
+    function __construct(string $colonne, string $condition, string $valeur) {
+        $this->colonne = $colonne;
+        $this->condition = $condition;
+        $this->valeur = $valeur;
     }
 }

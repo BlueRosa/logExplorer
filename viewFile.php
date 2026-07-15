@@ -5,7 +5,8 @@ include("includes/ollama.php");
 session_start();
 $fileToolbox = new FileToolbox();
 $dataToolbox = new DataToolbox();
-global $data;
+$filtres = [];
+$compteurDepart = 0;
 
 if (isset($_POST['submit'])) {
     if ($_POST['submit'] == 'importer') {
@@ -24,6 +25,15 @@ if (isset($_POST['submit'])) {
         }
     } else if ($_POST['submit'] == 'Filtrer') {
         $dataToolbox->importData(json_decode($_POST['data'], true));
+        $compteur = 0;
+        while (isset($_POST['filtre'.$compteur."colonne"]) && isset($_POST['filtre'.$compteur."condition"]) &&
+                isset($_POST['filtre'.$compteur."valeur"]) ) {
+            $dataToolbox->ajouterFiltre($_POST['filtre'.$compteur."colonne"], $_POST['filtre'.$compteur."condition"],
+                    $_POST['filtre'.$compteur."valeur"]);
+            $fileToolbox->sauvegarder($dataToolbox->filteredData, "Save_".session_id());
+            $compteur++;
+        }
+
         $dataToolbox->filteredData = $dataToolbox->filtrer($_POST['regex'] ?? null, $_POST['recherche'] ?? null,
                 $_POST['dateDebut'] ?? null, $_POST['dateFin'] ?? null);
     } else if ($_POST['submit'] == 'trier') {
@@ -47,6 +57,10 @@ if (isset($_POST['submit'])) {
     }
 }
 
+$colonnes = [];
+if (!empty($dataToolbox->data)) {
+    $colonnes = array_keys($dataToolbox->data[0]);
+}
 ?>
 <!doctype html>
 <html lang="fr">
@@ -58,8 +72,13 @@ if (isset($_POST['submit'])) {
     <title>Log files simplifyer</title>
     <link rel="stylesheet" href="style/bootstrap-5.3.8-dist/css/bootstrap.css">
     <link rel="stylesheet" href="style/viewFile.css">
-    <script src="style/bootstrap-5.3.8-dist/js/bootstrap.bundle.js"></script>
-
+    <script src="script/bootstrap-5.3.8-dist/js/bootstrap.bundle.js"></script>
+    <script>
+        const filtresInitiaux = <?= json_encode($filtres) ?>;
+        let compteurFiltre = <?= $compteurDepart ?>;
+        const colonnesLog = <?= json_encode($colonnes) ?>;
+    </script>
+    <script src="script/filtres.js" defer></script>
 </head>
 <body>
 <h1 class="page-title">
@@ -68,7 +87,6 @@ if (isset($_POST['submit'])) {
         by @bouffeur2frittes38
     </small>
 </h1>
-
 <div class="filters">
     <div class="ia-filter">
         <form method="post">
@@ -124,61 +142,7 @@ if (isset($_POST['submit'])) {
                         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                     </div>
                     <div class="modal-body">
-                        <div id="listeFiltres">
-                            <!-- Filtre initial -->
-                            <div class="card mb-3 filtre-bloc">
-                                <div class="card-body">
-                                    <div class="d-flex justify-content-between">
-                                        <h6>
-                                            🔎 Filtre
-                                        </h6>
-                                        <button type="button"
-                                                class="btn btn-danger btn-sm"
-                                                onclick="supprimerFiltre(this)">
-                                            🗑
-                                        </button>
-                                    </div>
-                                    <div class="row mt-3">
-                                        <div class="col">
-                                            <label>Colonne</label>
-                                            <select class="form-select"
-                                                    name="filtres[0][colonne]">
-                                                <option value="message">
-                                                    Message
-                                                </option>
-                                                <option value="date">
-                                                    Date
-                                                </option>
-                                                <option value="ip">
-                                                    IP
-                                                </option>
-                                            </select>
-                                        </div>
-                                        <div class="col">
-                                            <label>Condition</label>
-                                            <select class="form-select"
-                                                    name="filtres[0][condition]">
-                                                <option value="contient">
-                                                    Contient
-                                                </option>
-                                                <option value="=">
-                                                    Égal
-                                                </option>
-                                                <option value="regex">
-                                                    Regex
-                                                </option>
-                                            </select>
-                                        </div>
-                                        <div class="col">
-                                            <label>Valeur</label>
-                                            <input class="form-control"
-                                                   name="filtres[0][valeur]"
-                                                   value="ERROR">
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
+                        <div id="listeFiltres"></div>
                         <button type="button"
                                 class="btn btn-success"
                                 onclick="ajouterFiltre()">
