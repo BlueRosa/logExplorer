@@ -1,6 +1,6 @@
 <?php
 
-function lireCSV(string $fichier, string $separateur = ";"): array
+function lireCSV(string $fichier, string $separateur = ","): array
 {
     $logs = [];
     if (!file_exists($fichier)) {

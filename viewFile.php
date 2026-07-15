@@ -2,31 +2,21 @@
 include("includes/fileToolbox.php");
 include("includes/dataToolbox.php");
 include("includes/ollama.php");
-
+session_start();
 $fileToolbox = new FileToolbox();
 $dataToolbox = new DataToolbox();
-$regex = null;
-$recherche = null;
-$dateDebut = null;
-$dateFin = null;
-$data = null;
-$base = [];
 global $data;
 
 if (isset($_POST['submit'])) {
     if ($_POST['submit'] == 'importer') {
         if (isset($_FILES['file'])) {
-            $dataToolbox->importData(
-                    $fileToolbox->extractDataFromFile(
-                        $fileToolbox->getFichier(
-                            $fileToolbox->import($_FILES['file'], $_POST['typeLog']))));
+            $dataToolbox->importData($fileToolbox->extractDataFromFile($fileToolbox->getFichier(
+                    $fileToolbox->import($_FILES['file'], $_POST['typeLog']))));
         }
     } else if ($_POST['submit'] == 'csv') {
         if (isset($_FILES['file'])) {
-            $dataToolbox->importData(
-                    $fileToolbox->extractDataFromFile(
-                            $fileToolbox->getFichier(
-                                    $fileToolbox->importCSV($_FILES['file'], $_POST['separateur']))));
+            $dataToolbox->importData($fileToolbox->extractDataFromFile(
+                    $fileToolbox->getFichier($fileToolbox->importCSV($_FILES['file'], $_POST['separateur']))));
         }
     } else if ($_POST['submit'] == 'selectionner') {
         if (isset($_POST['fileChoose'])) {
@@ -47,7 +37,7 @@ if (isset($_POST['submit'])) {
             $ordreTri = "ASC";
         }
         $dataToolbox->filteredData = $dataToolbox->filtrer($_POST['regex'] ?? null, $_POST['recherche'] ?? null,
-                $_POST['dateDebut'] ?? null, $_POST['dateFin'] ?? null, $dataToolbox->data);
+                $_POST['dateDebut'] ?? null, $_POST['dateFin'] ?? null);
         $dataToolbox->filteredData = $dataToolbox->trier($colonneTri, $ordreTri);
     } else if ($_POST['submit'] == 'ia') {
         $dataToolbox->importData(json_decode($_POST['data'], true));
@@ -68,6 +58,8 @@ if (isset($_POST['submit'])) {
     <title>Log files simplifyer</title>
     <link rel="stylesheet" href="style/bootstrap-5.3.8-dist/css/bootstrap.css">
     <link rel="stylesheet" href="style/viewFile.css">
+    <script src="style/bootstrap-5.3.8-dist/js/bootstrap.bundle.js"></script>
+
 </head>
 <body>
 <h1 class="page-title">
@@ -116,6 +108,100 @@ if (isset($_POST['submit'])) {
         </div>
         <input type="hidden" hidden value="<?=  htmlspecialchars(json_encode($dataToolbox->data)) ?>" name="data">
     </form>
+    <!-- Bouton -->
+    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalFiltres">
+        🔎 Filtres
+    </button>
+    <!-- Modal -->
+    <div class="modal fade" id="modalFiltres" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <form method="post" action="viewFile.php">
+                    <div class="modal-header">
+                        <h5 class="modal-title">
+                            Gestion des filtres
+                        </h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div id="listeFiltres">
+                            <!-- Filtre initial -->
+                            <div class="card mb-3 filtre-bloc">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between">
+                                        <h6>
+                                            🔎 Filtre
+                                        </h6>
+                                        <button type="button"
+                                                class="btn btn-danger btn-sm"
+                                                onclick="supprimerFiltre(this)">
+                                            🗑
+                                        </button>
+                                    </div>
+                                    <div class="row mt-3">
+                                        <div class="col">
+                                            <label>Colonne</label>
+                                            <select class="form-select"
+                                                    name="filtres[0][colonne]">
+                                                <option value="message">
+                                                    Message
+                                                </option>
+                                                <option value="date">
+                                                    Date
+                                                </option>
+                                                <option value="ip">
+                                                    IP
+                                                </option>
+                                            </select>
+                                        </div>
+                                        <div class="col">
+                                            <label>Condition</label>
+                                            <select class="form-select"
+                                                    name="filtres[0][condition]">
+                                                <option value="contient">
+                                                    Contient
+                                                </option>
+                                                <option value="=">
+                                                    Égal
+                                                </option>
+                                                <option value="regex">
+                                                    Regex
+                                                </option>
+                                            </select>
+                                        </div>
+                                        <div class="col">
+                                            <label>Valeur</label>
+                                            <input class="form-control"
+                                                   name="filtres[0][valeur]"
+                                                   value="ERROR">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <button type="button"
+                                class="btn btn-success"
+                                onclick="ajouterFiltre()">
+                            ➕ Ajouter un filtre
+                        </button>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button"
+                                class="btn btn-secondary"
+                                data-bs-dismiss="modal">
+                            Fermer
+                        </button>
+                        <button type="submit"
+                                name="submit"
+                                value="filtres"
+                                class="btn btn-primary">
+                            Appliquer
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
 </div>
 
 <div class="results">
@@ -157,6 +243,9 @@ if (isset($_POST['submit'])) {
             </tbody>
         </table>
     </div>
+    <a href="<?= LOG_FILE_LOCATION."/TempFile.csv" ?>" download>
+        <button type="button">Sauvegarder le fichier en CSV</button>
+    </a>
 </div>
 <form id="triForm" method="post">
     <input type="hidden" name="data" value="<?= htmlspecialchars(json_encode($dataToolbox->data)) ?>">

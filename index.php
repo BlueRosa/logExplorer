@@ -57,7 +57,7 @@ $fileToolbox->listerFichiers();
                     </button>
                 </form>
                 <hr>
-                <form action="viewFile.php" method="post">
+                <form action="viewFile.php" method="post" enctype="multipart/form-data">
                     <h2>📤 Importer un fichier CSV</h2>
                     <div class="form-group">
                         <label for="file">Fichier</label>

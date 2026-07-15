@@ -1,0 +1,5 @@
+# Ignorer tout le contenu du dossier files
+/files/*
+
+# Garder le dossier files dans Git
+!/files/.gitkeep

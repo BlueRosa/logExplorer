@@ -4,10 +4,13 @@ include("includes/logFileReader/logFileReader.php");
 /**
  *  Classe à tout faire des fichiers locaux. Elle gère les traitements CR des fichiers de log sur le serveur.
  */
-class FileToolbox {
+class FileToolbox
+{
     public string $chemin;
     public array $fichiers;
-    function __construct(string $chemin = LOG_FILE_LOCATION) {
+
+    function __construct(string $chemin = LOG_FILE_LOCATION)
+    {
         $this->chemin = $chemin;
         $this->fichiers = $this->listerFichiers($chemin);
     }
@@ -37,7 +40,8 @@ class FileToolbox {
             }
             $nomOriginal = null;
             $type = null;
-            $dateImport = null;        $cheminInfo = $cheminFichier . ".info";
+            $dateImport = null;
+            $cheminInfo = $cheminFichier . ".info";
             if (is_file($cheminInfo)) {
                 $info = json_decode(
                     file_get_contents($cheminInfo),
@@ -75,7 +79,7 @@ class FileToolbox {
 
             $nomStockage = uniqid("log_", true) . ".log";
 
-            $destination = $chemin ."/". $nomStockage;
+            $destination = $chemin . "/" . $nomStockage;
 
             if (!move_uploaded_file(
                 $file['tmp_name'],
@@ -87,7 +91,7 @@ class FileToolbox {
                 $destination . ".info",
                 json_encode([
                     "nomOriginal" => basename($file['name']),
-                    "type" => "CSV",
+                    "type" => "csv",
                     "dateImport" => date("Y-m-d H:i:s"),
                     "separateur" => $separateur
                 ], JSON_PRETTY_PRINT)
@@ -95,6 +99,7 @@ class FileToolbox {
             if ($info === false) {
                 die("Impossible de créer le fichier info");
             }
+            $this->fichiers = $this->listerFichiers($chemin);
             return $nomStockage;
         }
         return "";
@@ -112,7 +117,7 @@ class FileToolbox {
 
             $nomStockage = uniqid("log_", true) . ".log";
 
-            $destination = $chemin ."/". $nomStockage;
+            $destination = $chemin . "/" . $nomStockage;
 
             if (!move_uploaded_file(
                 $file['tmp_name'],
@@ -142,7 +147,8 @@ class FileToolbox {
      * @param String $nom nom actuel du fichier souhaité
      * @return array fichier qui porte le nom donné en paramètre
      */
-    function getFichier(String $nom) : array{
+    function getFichier(string $nom): array
+    {
         foreach ($this->fichiers as $fichier) {
             if ($fichier["nomActuel"] === $nom) {
                 return $fichier;
@@ -157,7 +163,31 @@ class FileToolbox {
      * @param string $chemin chemin du dossier où sont les fichiers de log enregistrés localement
      * @return array données contenues dans le fichier
      */
-    function extractDataFromFile(array $file, string $chemin = LOG_FILE_LOCATION) : array{
-        return analyserFichierLog($chemin."/".$file["nomActuel"]);
+    function extractDataFromFile(array $file, string $chemin = LOG_FILE_LOCATION): array
+    {
+        return analyserFichierLog($chemin . "/" . $file["nomActuel"]);
+    }
+
+    function sauvegarder(array $data, string $nomfichier = "sauvegardeDefault.csv", string $chemin = LOG_FILE_LOCATION): int
+    {
+        if (empty($data)) {
+            return 404;
+        }
+        $cheminFichier = $chemin . "/" . $nomfichier . ".csv";
+        if (!is_dir($chemin)) {
+            die("chemin du dossier de sauvegarde érroné");
+        }
+        $handle = fopen($cheminFichier, "w");
+        if ($handle === false) {
+            die("Impossible d'ouvrir le fichier de sauvegarde");
+        }
+        // Écriture des en-têtes
+        fputcsv($handle, array_keys($data[0]));
+        // Écriture des données
+        foreach ($data as $ligne) {
+            fputcsv($handle, $ligne);
+        }
+        fclose($handle);
+        return 0;
     }
 }
