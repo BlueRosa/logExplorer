@@ -5,13 +5,19 @@
  */
 class DataToolbox {
     /**
-     * @var array données de log avant filtrage et tri
+     * @var bool indique si le fichier à télécharger est trié ou non
      */
-    public array $data;
+    public bool $sorted;
+    /**
+     * @var bool indique si le fichier à télécharger est filtré ou non
+     */
+    public bool $filtered;
+
     /**
      * @var array données de log après filtrage et tri
      */
     public array $filteredData;
+
 
     /**
      * @var array filtres actifs sur les données
@@ -32,7 +38,8 @@ class DataToolbox {
      * @param array $data données de log à traiter
      */
     function __construct(array $data = []) {
-        $this->data = $data;
+        $this->filtered = false;
+        $this->sorted = false;
         $this->filteredData = $data;
         $this->filtreActif = [];
     }
@@ -43,22 +50,23 @@ class DataToolbox {
      * @return void
      */
     function importData(array $data): void {
-        $this->data = $data;
+        $_SESSION['data'] = $data;
         $this->filteredData = $data;
     }
 
     /**
-     * fonction d'application d'une liste de filtres sur les données stockées dans la classe.
+     * Fonction d'application d'une liste de filtres sur les données stockées dans la classe.
      * @param array $filtres liste de filtres à appliquer (dans l'ordre)
      * @return array les données filtrées
      */
     function filtrer(array $filtres): array
     {
-        if (empty($this->data)) {
+        if (empty($_SESSION['data'])) {
             return [];
         }
-        $resultat = $this->data;
+        $resultat = $_SESSION['data'];
         foreach ($filtres as $filtre) {
+            $this->filtered = true;
             $resultat = array_filter($resultat, function ($ligne) use ($filtre) {
                 // La colonne n'existe pas
                 if (!isset($ligne[$filtre->colonne])) {
@@ -68,7 +76,10 @@ class DataToolbox {
                 $valeurFiltre = (string)$filtre->valeur;
                 switch ($filtre->condition) {
                     case "contient":
-                        return stripos($valeurColonne, $valeurFiltre) !== false;
+                        return mb_stripos(
+                            trim($valeurColonne),
+                            trim($valeurFiltre)
+                        ) !== false;
                     case "=":
                         return $valeurColonne === $valeurFiltre;
                     case "regex":
@@ -89,13 +100,14 @@ class DataToolbox {
     }
 
     /**
-     * fonction d'application d'un tri sur les données
+     * Fonction d'application d'un tri sur les données
      * @param string $colonne champ sur lequel se baser pour le tri
      * @param string $ordre ASC : ascending, DESC : descending
      * @return array données triées
      */
     function trier(string $colonne, string $ordre = "ASC") : array
     {
+        $this->sorted = true;
         $this -> triColonne = $colonne;
         $this -> sensTri = $ordre;
         usort($this->filteredData, function ($a, $b) use ($colonne, $ordre) {
@@ -118,6 +130,9 @@ class DataToolbox {
     }
 }
 
+/**
+ * Classe de stockage d'un filtre à appliquer sur les données
+ */
 class Filtre {
     public string $colonne;
     public string $condition;

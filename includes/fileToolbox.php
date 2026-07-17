@@ -6,15 +6,18 @@ include("includes/logFileReader/logFileReader.php");
  */
 class FileToolbox
 {
+    /**
+     * @var string chemin vers le fichier des logs
+     */
     public string $chemin;
+    /**
+     * @var array liste des fichiers de logs présents sur le serveur
+     */
     public array $fichiers;
-    public string $fichier;
-
     function __construct(string $chemin = LOG_FILE_LOCATION)
     {
         $this->chemin = $chemin;
         $this->fichiers = $this->listerFichiers($chemin);
-        $this->fichier = "";
     }
 
     /**
@@ -66,6 +69,7 @@ class FileToolbox
     }
 
     /**
+     * Fonction d'import d'un fichier CSV du navigateur vers le serveur
      * @param array $file fichier à enregistrer
      * @param string $separateur séparateur des valeurs du fichier csv
      * @param string $chemin chemin du dossier des logs eregistrés localement
@@ -108,6 +112,7 @@ class FileToolbox
     }
 
     /**
+     * Fonction d'import d'un fichier depuis le navigateur vers le serveur
      * @param array $file fichier à enregistrer
      * @param string $type type de fichier à enregistrer
      * @param string $chemin chemin du dossier des logs eregistrés localement
@@ -145,7 +150,7 @@ class FileToolbox
     }
 
     /**
-     * fonction de récupération de fichier à partir de son nom
+     * Fonction de récupération de fichier à partir de son nom
      * @param String $nom nom actuel du fichier souhaité
      * @return array fichier qui porte le nom donné en paramètre
      */
@@ -153,7 +158,6 @@ class FileToolbox
     {
         foreach ($this->fichiers as $fichier) {
             if ($fichier["nomActuel"] === $nom) {
-                $this->fichier = $fichier;
                 return $fichier;
             }
         }
@@ -161,7 +165,7 @@ class FileToolbox
     }
 
     /**
-     * fonction appelant la fonction d'extraction des données
+     * Fonction appelant la fonction d'extraction des données
      * @param array $file fichier dont il faut extraire les données
      * @param string $chemin chemin du dossier où sont les fichiers de log enregistrés localement
      * @return array données contenues dans le fichier
@@ -171,45 +175,36 @@ class FileToolbox
         return analyserFichierLog($chemin . "/" . $file["nomActuel"]);
     }
 
-    function sauvegarder(array $data, string $nomfichier = "sauvegardeDefault.csv", string $chemin = LOG_FILE_LOCATION): int
-    {
-        if (empty($data)) {
-            return 404;
-        }
-        $cheminFichier = $chemin . "/" . $nomfichier . ".csv";
-        if (!is_dir($chemin)) {
-            die("chemin du dossier de sauvegarde érroné");
-        }
-        $handle = fopen($cheminFichier, "w");
-        if ($handle === false) {
-            die("Impossible d'ouvrir le fichier de sauvegarde");
-        }
-        // Écriture des en-têtes
-        fputcsv($handle, array_keys($data[0]));
-        // Écriture des données
-        foreach ($data as $ligne) {
-            fputcsv($handle, $ligne);
-        }
-        fclose($handle);
-        return 0;
-    }
-
+    /**
+     * Fonction de sauvegarde d'un filtre
+     * @param string $type type de données pour lesquelles le filtre est fait
+     * @param string $nom nom du filtre au choix
+     * @param array $filtres liste de Filtre composant ce filtre
+     * @param string|null $idFichier nom du fichier actuel ( utile que pour les csv )
+     * @return string nom du filtre fraichement enregistré
+     */
     public function enregistrerFiltre(string $type, string $nom, array $filtres, ?string $idFichier = null): string
     {
         $dossierBase = FILTER_LOCATION;
         // Détermination du dossier de sauvegarde
+
         if ($type === "csv") {
             if ($idFichier === null) {
-                die ("l'id du fichier est obligatoire");
+                die("l'id du fichier est obligatoire");
             }
-            $dossier = $dossierBase . "csv/" . $idFichier . "/";
+            $dossier = $dossierBase . "/csv/" . $idFichier . "/";
         } else {
-            $dossier = $dossierBase ."/". $type . "/";
+            $dossier = $dossierBase . "/" . $type . "/";
         }
 
         // Création du dossier si nécessaire
         if (!is_dir($dossier)) {
-            mkdir($dossier, 0777, true);
+            if (!mkdir($dossier, 0777, true)) {
+                die("Impossible de créer le dossier : ".$dossier);
+            }
+        }
+        if (!is_writable($dossier)) {
+            die("Dossier non accessible en écriture : ".$dossier);
         }
 
         // Génération de l'identifiant
@@ -230,20 +225,27 @@ class FileToolbox
             "nom" => $nom,
             "type" => $type,
             "creation" => date("Y-m-d H:i:s"),
-            "filtres" => $listeFiltres
+            "data" => $listeFiltres
         ];
 
-        file_put_contents(
-            $dossier . $id . ".json",
-            json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE
-            )
-        );
-         if ($type === "csv") {
+        $fichier = $dossier . $id . ".json";
+
+        if (file_put_contents($fichier, json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE)) === false)
+        {
+            die("Impossible de sauvegarder le filtre : ".$fichier);
+        }
+
+        if ($type === "csv") {
              $this->ajouterFiltreInfoCsv(LOG_FILE_LOCATION."/".$idFichier.".info", $dossier . $id . ".json");
-         }
+        }
         return $id;
     }
 
+    /**
+     * Fonction de lecture d'un fichier de filtre avec son chemin
+     * @param string $chemin chemin du fichier filtre à charger
+     * @return array liste des données tirées du filtre
+     */
     public function chargerFiltre(string $chemin): array
     {
         if (!file_exists($chemin)) {
@@ -254,16 +256,25 @@ class FileToolbox
             true
         );
         $filtres = [];
-        foreach ($contenu["filtres"] ?? [] as $filtre) {
-            $filtres[] = new Filtre(
-                $filtre["colonne"],
-                $filtre["condition"],
-                $filtre["valeur"]
-            );
+        if (!is_array($contenu)) {
+            return [];
         }
+        foreach ($contenu["data"] ?? [] as $filtre) {
+        $filtres[] = new Filtre(
+            $filtre["colonne"],
+            $filtre["condition"],
+            $filtre["valeur"]
+        );
+    }
         return $filtres;
     }
 
+    /**
+     * Fonction d'ajout du nom d'un fichier dans le fichier info d'un csv.
+     * @param string $fichierInfo lien du fichier d'informations (.info) du fichier ouvert
+     * @param string $idFiltre nom du filtre concerné par cet ajout
+     * @return bool si l'ajout du filtre dans le fichier info a réussi ou non
+     */
     public function ajouterFiltreInfoCsv(string $fichierInfo, string $idFiltre): bool {
         if (!file_exists($fichierInfo)) {
             return false;
@@ -278,9 +289,153 @@ class FileToolbox
         }
         // Évite les doublons
         if (!in_array($idFiltre, $info["filtres"])) {
-            $info["filtres"][] = $idFiltre;
+            $info["filtres"][] = basename($idFiltre);
         }
         return file_put_contents($fichierInfo, json_encode($info, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE))
             !== false;
+    }
+
+    /**
+     * Fonction pour lire la liste des filtres disponibles pour un fichier
+     * @param string $type type de fichier concerné
+     * @param string|null $nomfichier nom du fichier concerné (utile que pour les csv)
+     * @param string|null $cheminFichier chemin du fichier concerné (utile que pour les csv)
+     * @param string $chemin chemin menant au dossier des filtres
+     * @return array liste des filtres existants et compatible avec ce fichier
+     */
+    public function listerFiltres(string $type, ?string $nomfichier = null, ?string $cheminFichier = LOG_FILE_LOCATION , string $chemin = FILTER_LOCATION) : array
+    {
+        $filtres = [];
+
+        if (!is_dir($chemin)) {
+            return $filtres;
+        }
+
+        if ($type === "csv") {
+            if ($nomfichier === null) {
+                return [];
+            }
+            return $this->listerFiltresCsv($nomfichier, $cheminFichier);
+        }
+
+        $chemin .= "/" . $type;
+
+        if (!is_dir($chemin)) {
+            return [];
+        }
+
+        foreach (glob($chemin . "/*.json") as $fichier) {
+            $contenu = json_decode(file_get_contents($fichier), true);
+            $filtres[] = [
+                "id" => $contenu["id"],
+                "nom" => $contenu["nom"],
+                "type" => $contenu["type"],
+                "creation" => $contenu["creation"],
+                "chemin" => $fichier,
+                "data" => $contenu["data"]
+            ];
+        }
+        return $filtres;
+    }
+
+    /**
+     * Fonction qui trouve les filtres compatibles avec un fichier
+     * @param string $nomFichier nom du fichier concerné
+     * @param string $cheminFichier chemin vers le fichier des logs
+     * @return array liste des filtres trouvés pour ce fichier
+     */
+    public function listerFiltresCsv(string $nomFichier, string $cheminFichier = LOG_FILE_LOCATION): array
+    {
+        $resultat = [];
+
+        $infoPath = $cheminFichier . "/" . $nomFichier . ".info";
+
+        if (!file_exists($infoPath)) {
+            return [];
+        }
+
+        $info = json_decode(file_get_contents($infoPath), true);
+
+        foreach ($info["filtres"] ?? [] as $fichierFiltre) {
+
+            $chemin = FILTER_LOCATION."/csv/".$nomFichier."/".$fichierFiltre;
+
+            if (!file_exists($chemin)) {
+                continue;
+            }
+
+            $filtre = json_decode(file_get_contents($chemin), true);
+
+            $resultat[] = [
+                "id" => $filtre["id"],
+                "nom" => $filtre["nom"],
+                "chemin" => $chemin,
+                "data" => $filtre["data"]
+            ];
+        }
+        return $resultat;
+    }
+
+    /**
+     * Fonction de mise à jour / de création du fichier téléchargeable des données traitées
+     * @param array $data données traitées
+     * @param string $nomFichier nom du fichier à télécharger
+     * @param string $chemin chemin vers le fichier à télécharger
+     * @return bool si la mise a jour/ la créaction s'est bien passée ou non
+     */
+    public function mettreAJourTempCSV(array $data, string $nomFichier = "SaveData" ,string $chemin = LOG_FILE_LOCATION): bool
+    {
+        if (empty($data)) {
+            return false;
+        }
+        // Nettoyage des anciennes sessions
+        $this->nettoyerTempCSV($chemin);
+        $session = session_id();
+        if (empty($session)) {
+            return false;
+        }
+        $dossierTemp = $chemin . "/temp/" . $session;
+        if (!is_dir($dossierTemp)) {
+            mkdir($dossierTemp, 0777, true);
+        }
+        $fichier = $dossierTemp . "/".$nomFichier.".csv";
+        $handle = fopen($fichier, "w");
+        if ($handle === false) {
+            return false;
+        }
+        fputcsv($handle, array_keys($data[0]));
+        foreach ($data as $ligne) {
+            fputcsv($handle, $ligne);
+        }
+        fclose($handle);
+        touch($dossierTemp);
+        return true;
+    }
+
+    /**
+     * Fonction de suppression des fichiers temporaires expirés
+     * @param string $chemin chemin vers les fichiers (sans /temp)
+     * @return void
+     */
+    private function nettoyerTempCSV(string $chemin): void
+    {
+        $temp = $chemin . "/temp";
+        if (!is_dir($temp)) {
+            return;
+        }
+        foreach (glob($temp."/*") as $dossier) {
+            if (!is_dir($dossier)) {
+                continue;
+            }
+            // Suppression après 24h d'inactivité
+            if (time() - filemtime($dossier) > 86400) {
+                foreach (glob($dossier."/*") as $fichier) {
+                    if (is_file($fichier)) {
+                        unlink($fichier);
+                    }
+                }
+                rmdir($dossier);
+            }
+        }
     }
 }

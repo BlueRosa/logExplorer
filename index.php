@@ -82,7 +82,7 @@ $fileToolbox->listerFichiers();
                         <select class="form-select" name="fileChoose" required id="fileChoose">
                             <option selected disabled>Choisissez un fichier...</option>
                             <?php foreach ($fileToolbox->fichiers as $fichier) : ?>
-                                <option value="<?=htmlspecialchars($fichier['nomActuel']) ?>">
+                                <option value="<?= htmlspecialchars(json_encode($fichier)); ?>">
                                     <?=htmlspecialchars($fichier['dateImport'])." - ".htmlspecialchars($fichier['nomOriginal'])." - ".htmlspecialchars($fichier['type'])?>
                                 </option>
                             <?php endforeach; ?>

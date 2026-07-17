@@ -1,4 +1,7 @@
 <?php
+/**
+ * Import de toutes les fonctions de lecture de log
+ */
 include("specialisation/logFileReaderApplications.php");
 include("specialisation/logFileReaderAuthentificationReseau.php");
 include("specialisation/logFileReaderBdd.php");
@@ -17,7 +20,8 @@ include("specialisation/logFileReaderWeb.php");
 include("specialisation/csvFileReader.php");
 
 
-/** @var array $listeTypes liste des trypes de logs acceptés et de leur nom de fonction de lecture
+/**
+ * @var array $listeTypes liste des trypes de logs acceptés et de leur nom de fonction de lecture
  * format : $listeTypes[catégorie][0 : format ou 1 : fonction]
  */
 $listeTypes = [

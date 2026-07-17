@@ -1,3 +1,4 @@
+let compteurFiltre = 0;
 document.addEventListener("DOMContentLoaded", () => {
     if (filtresInitiaux.length > 0) {
         filtresInitiaux.forEach(filtre => ajouterFiltre(filtre));
@@ -66,7 +67,7 @@ function ajouterFiltre(filtre = {}) {
     document.getElementById("listeFiltres").appendChild(bloc);
 
     // Détection automatique du type
-    adapterTypeChamp(bloc.querySelector(`input[name="filtre${id}valeur"]`));
+    adapterTypeChamp(bloc.querySelector(`select[name="filtre${id}colonne"]`));
 }
 
 function supprimerFiltre(bouton) {
@@ -95,33 +96,43 @@ function adapterTypeChamp(selectColonne) {
     const bloc = selectColonne.closest(".filtre-bloc");
     const input = bloc.querySelector('input[name$="valeur"]');
     const selectCondition = bloc.querySelector('select[name$="condition"]');
+
     const colonne = selectColonne.value;
 
-    // Cherche une valeur non vide dans cette colonne
     let exemple = "";
 
     for (const ligne of donneesLog) {
-        if (ligne[colonne] !== undefined && ligne[colonne] !== null && ligne[colonne] !== "") {
+        if (ligne[colonne] !== undefined &&
+            ligne[colonne] !== null &&
+            ligne[colonne] !== "") {
+
             exemple = String(ligne[colonne]).trim();
             break;
         }
     }
+
+    let typeDate = false;
+
     input.type = "text";
-    // Date
+
+    // Date YYYY-MM-DD
     if (/^\d{4}-\d{2}-\d{2}$/.test(exemple)) {
         input.type = "date";
-        return;
+        typeDate = true;
     }
-    // Heure
-    if (/^\d{2}:\d{2}(:\d{2})?$/.test(exemple)) {
+    // Heure HH:mm ou HH:mm:ss
+    else if (/^\d{2}:\d{2}(:\d{2})?$/.test(exemple)) {
         input.type = "time";
-        return;
+        typeDate = true;
     }
-    // Date + heure ISO
-    if (/^\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}(:\d{2})?(\.\d+)?(Z|[+-]\d{2}:\d{2})?$/.test(exemple)) {
+    // Date ISO avec heure + Z ou timezone
+    else if (/^\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}(:\d{2})?(\.\d+)?(Z|[+-]\d{2}:\d{2})?$/.test(exemple)) {
         input.type = "datetime-local";
+        typeDate = true;
     }
-    if (input.type === "date" || input.type === "time" || input.type === "datetime-local"){
+
+
+    if (typeDate) {
         selectCondition.innerHTML = `
             <option value="=">
                 Égal
@@ -145,10 +156,10 @@ function adapterTypeChamp(selectColonne) {
                 Regex
             </option>
             <option value="<">
-                Avant / Plus petit
+                Plus petit
             </option>
             <option value=">">
-                Après / Plus grand
+                Plus grand
             </option>
         `;
     }
