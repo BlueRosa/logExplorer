@@ -3,3 +3,4 @@
 
 # Garder le dossier files dans Git
 !/files/.gitkeep
+.DS_Store
